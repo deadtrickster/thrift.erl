@@ -1,0 +1,5 @@
+#!/bin/sh
+
+rm -rf tmp/thrift
+git clone https://github.com/apache/thrift.git tmp/thrift
+cp -rf tmp/thrift/lib/erl/* ./
