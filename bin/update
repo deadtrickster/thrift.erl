@@ -3,3 +3,12 @@
 rm -rf tmp/thrift
 git clone https://github.com/apache/thrift.git tmp/thrift
 cp -rf tmp/thrift/lib/erl/* ./
+
+echo "{plugins, [rebar3_hex]}." >> rebar.config
+
+OLD="$(head -n -2 src/thrift.app.src)"
+echo "$OLD" > src/thrift.app.src
+echo "  ]}," >> src/thrift.app.src
+echo "  {licenses, [\"Apache 2.0\"]}," >> src/thrift.app.src
+echo "  {pkg_name, thrift_erl}" >> src/thrift.app.src
+echo "]}." >> src/thrift.app.src

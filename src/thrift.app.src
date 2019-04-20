@@ -70,5 +70,7 @@
     % should the TApplicationException serialized back to the client
     % include the erlang backtrace?
     {exceptions_include_traces, true}
-  ]}
+  ]},
+  {licenses, ["Apache 2.0"]},
+  {pkg_name, thrift_erl}
 ]}.
