@@ -24,6 +24,23 @@
 -include("thrift_constants.hrl").
 -include("thrift_protocol.hrl").
 
+%% Taken from https://github.com/basho/riak_sysmon/blob/2.2.0/src/stacktrace.hrl
+-ifdef(OTP_RELEASE). %% This implies 21 or higher
+-define(_exception_(Class, Reason, StackToken), Class:Reason:StackToken).
+-define(_get_stacktrace_(StackToken), StackToken).
+-define(_current_stacktrace_(),
+        try
+            exit('$get_stacktrace')
+        catch
+            exit:'$get_stacktrace':__GetCurrentStackTrace ->
+                __GetCurrentStackTrace
+        end).
+-else.
+-define(_exception_(Class, Reason, _), Class:Reason).
+-define(_get_stacktrace_(_), erlang:get_stacktrace()).
+-define(_current_stacktrace_(), erlang:get_stacktrace()).
+-endif.
+
 -record(thrift_processor, {handler, protocol, service}).
 
 init({_Server, ProtoGen, Service, Handler}) when is_function(ProtoGen, 0) ->
@@ -101,17 +118,16 @@ handle_function(State0=#thrift_processor{protocol = Proto0,
         %%                       [Function, Params, Micro/1000.0]),
         handle_success(State1, Function, Result, Seqid)
     catch
-        Type:Data when Type =:= throw orelse Type =:= error ->
-            handle_function_catch(State1, Function, Type, Data, Seqid)
+        ?_exception_(Type, Data, StackToken) when Type =:= throw orelse Type =:= error ->
+            handle_function_catch(State1, Function, Type, Data, Seqid, ?_get_stacktrace_(StackToken))
     end.
 
 handle_function_catch(State = #thrift_processor{service = Service},
-                      Function, ErrType, ErrData, Seqid) ->
+                      Function, ErrType, ErrData, Seqid, Stack) ->
     IsOneway = Service:function_info(Function, reply_type) =:= oneway_void,
 
     case {ErrType, ErrData} of
         _ when IsOneway ->
-            Stack = erlang:get_stacktrace(),
             error_logger:warning_msg(
               "oneway void ~p threw error which must be ignored: ~p",
               [Function, {ErrType, ErrData, Stack}]),
@@ -186,7 +202,7 @@ handle_unknown_exception(State, Function, Exception, Seqid) ->
                                    Exception}, Seqid).
 
 handle_error(State, Function, Error, Seqid) ->
-    Stack = erlang:get_stacktrace(),
+    Stack = ?_current_stacktrace_(), 
     error_logger:error_msg("~p had an error: ~p~n", [Function, {Error, Stack}]),
 
     Message =

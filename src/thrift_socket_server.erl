@@ -307,7 +307,7 @@ handle_info({'EXIT', _LoopPid, Reason},
         normal -> ok;
         shutdown -> ok;
         _ -> error_logger:error_report({?MODULE, ?LINE,
-                                        {child_error, Reason, erlang:get_stacktrace()}})
+                                        {child_error, Reason}})
     end,
     State1 = State#thrift_socket_server{max=Max + 1},
     State2 = case Pid of
